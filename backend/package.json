@@ -1,0 +1,39 @@
+{
+  "name": "dr-pdf",
+  "version": "1.0.0",
+  "description": "Dr-pdf which manages every pdf work",
+  "keywords": [
+    "pdf",
+    "merge",
+    "compress"
+  ],
+  "homepage": "https://github.com/artistemahi/Dr.PDF#readme",
+  "bugs": {
+    "url": "https://github.com/artistemahi/Dr.PDF/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/artistemahi/Dr.PDF.git"
+  },
+  "license": "ISC",
+  "author": "Mahesh Kumar",
+  "type": "commonjs",
+  "main": "app.ts",
+  "scripts": {
+    "start": "npm src/app.ts",
+    "dev": "nodemon src/app.ts",
+    "test": "jest"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongoose": "^9.6.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.8.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^6.0.3"
+  }
+}
