@@ -6,6 +6,12 @@ const profileRouter = express.Router();
 profileRouter.get("/profile/view", UserAuth, async (req: any, res: any) => {
   try {
     const { user } = req;
+    const safeUser = {
+      firstName:user.firstName,
+      lastName:user.lastName,
+      email:user.email,
+      avatar:user.avatar
+    }
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -14,9 +20,9 @@ profileRouter.get("/profile/view", UserAuth, async (req: any, res: any) => {
     }
     res.status(200).json({
       success: true,
-      data: user,
+      data: safeUser,
     });
-    console.log(req.user);
+    // console.log(req.user);
   } catch (err: any) {
     res.status(500).json({
       success: false,

@@ -2,17 +2,17 @@ import mongoose from "mongoose";
 import Validator from "validator";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import bcrypt from "bcrypt"
+import bcrypt from "bcrypt";
 dotenv.config();
-interface Data{
-    firstName:string,
-    lastName:string,
-    email:string,
-    password:string,
-    country:string,
-    avatar:string,
-    getJwtToken():string,
-    ValidatePassword(password: string): Promise<boolean>; 
+interface Data {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  country: string;
+  avatar: string;
+  getJwtToken(): string;
+  ValidatePassword(password: string): Promise<boolean>;
 }
 const userSchema = new mongoose.Schema<Data>(
   {
@@ -59,15 +59,12 @@ const userSchema = new mongoose.Schema<Data>(
   { timestamps: true },
 );
 
-userSchema.methods.getJwtToken = async function (){
-  const user = this;
-  try {
-    if(!process.env.SECRET_KEY){ throw new Error("SECRET_KEY is not defined !")}
-    const token = jwt.sign({ id: user._id }, process.env.SECRET_KEY)
-    return token;
-  } catch (err:any) {
-    throw new Error("Error generating JWT token: " + err.message);
+userSchema.methods.getJwtToken = function () {
+  if (!process.env.SECRET_KEY) {
+    throw new Error("SECRET_KEY is not defined!");
   }
+
+  return jwt.sign({ id: this._id }, process.env.SECRET_KEY);
 };
 
 userSchema.methods.ValidatePassword = function (UserInputPassword: string) {
