@@ -10,8 +10,6 @@ This document contains all API endpoints for the Dr.PDF platform.
 - POST   /auth/signup
 - POST   /auth/login
 - POST   /auth/logout
-- GET    /auth/me
-
 ---
 
 ## 👤 Profile APIs

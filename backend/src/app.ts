@@ -1,7 +1,17 @@
 import express from "express";
 import connectDB from "./config/database"
-const app = express();
+import authRouter from "./routes/authRouter"
+import profileRouter from "./routes/profileRouter"
+import cookieParser from "cookie-parser";
 
+const app = express();
+app.use(cookieParser());
+app.use(express.json());
+
+
+// routes 
+app.use("/",authRouter);
+app.use("/user",profileRouter);
 
 connectDB()
 .then(()=>{
