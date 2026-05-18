@@ -1,6 +1,6 @@
 import Validator from "validator";
 
-const ValidationFn = (
+export const ValidationFn = (
   firstName: string,
   lastName: string,
   email: string,
@@ -22,4 +22,23 @@ const ValidationFn = (
 
   return {isValid:true};
 };
-export default ValidationFn;
+
+export const ValidateProfileEdit = (body:any)=>{
+   const allowedField = [
+    "firstName",
+    "lastName",
+    "avatar",
+    "country",
+   ];
+   const field = Object.keys(body || {});
+   if(field.length===0){
+    throw new Error("No fields provided for update !");
+   }
+
+   field.forEach((f)=>{
+     if(!allowedField.includes(f)){
+      throw new Error("Field is not allowed to update !")
+     }
+   });
+   return true;
+};

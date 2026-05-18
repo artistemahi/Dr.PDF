@@ -1,5 +1,5 @@
 import express from "express";
-import ValidationFn from "../utils/validationFn";
+import {ValidationFn} from "../utils/validationFn";
 import { UserModel } from "../models/userSchema";
 import bcrypt from "bcrypt";
 
