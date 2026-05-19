@@ -2,6 +2,7 @@ import express from "express";
 import connectDB from "./config/database"
 import authRouter from "./routes/authRouter"
 import profileRouter from "./routes/profileRouter"
+import fileRouter from "./routes/fileRouter"
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -12,6 +13,7 @@ app.use(express.json());
 // routes 
 app.use("/",authRouter);
 app.use("/user",profileRouter);
+app.use("/",fileRouter);
 
 connectDB()
 .then(()=>{
