@@ -81,6 +81,7 @@ profileRouter.patch(
     try {
       const loggedInUser = req.user;
       const { oldPasswordInputByUser, newPasswordInputByUser } = req.body;
+      // validating the old password
       const isMatch = await loggedInUser.ValidatePassword(
         oldPasswordInputByUser,
       );
@@ -91,6 +92,7 @@ profileRouter.patch(
             "old Password is not correct! please enter the correct old Password.",
         });
       }
+      // validating for the strong password
       if (!Validator.isStrongPassword(newPasswordInputByUser)) {
         return res.status(400).json({
           success: false,
@@ -121,5 +123,43 @@ profileRouter.patch(
 );
 
 //  profile/delete
+profileRouter.delete(
+  "/profile/delete",
+  UserAuth,
+  async (req: any, res: any) => {
+    try {
+      const loggedInUser = req.user;
+      const oldPasswordInputByUser = req.body.password;
+      if (!oldPasswordInputByUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Password is required",
+        });
+      }
+      const isMatch = await loggedInUser.ValidatePassword(
+        oldPasswordInputByUser,
+      );
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid password",
+        });
+      }
+      if (isMatch) {
+        await loggedInUser.deleteOne();
+        res.clearCookie("token");
+        res.status(400).json({
+          success: true,
+          message: "User deleted successfully",
+        });
+      }
+    } catch (err: any) {
+      res.status(400).json({
+        success: false,
+        message: err.message,
+      });
+    }
+  },
+);
 
 export default profileRouter;
