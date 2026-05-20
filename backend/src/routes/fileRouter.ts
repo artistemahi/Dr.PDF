@@ -126,8 +126,23 @@ fileRouter.delete("/file/:fileId", UserAuth, async (req: any, res: any) => {
 });
 
 // GET    /file/user/all
-fileRouter.get("/file/user/all", UserAuth, async (req, res) => {
+fileRouter.get("/file/user/all", UserAuth, async (req:any, res:any) => {
   try {
+    const user = req.user;
+    const allFile =await FileModel.find({userId:user._id}).sort({
+      createdAt: -1, // latest file  at top  , descending order
+    });
+    // console.log(allFile);
+    if(!allFile || allFile.length==0){
+      return res.json({
+        success:false,
+        data:[]
+      });
+    }
+    res.json({
+      success:true,
+      data:allFile
+    });
   } catch (err: any) {
     res.status(400).json({
       success: false,
