@@ -1,8 +1,9 @@
-import jwt from 'jsonwebtoken'
-import {UserModel} from "../models/userSchema"
+import jwt from "jsonwebtoken";
+import { UserModel } from "../models/userSchema";
 import dotenv from "dotenv";
 dotenv.config();
 
+// userauth for login check
 export const UserAuth = async (req: any, res: any, next: Function) => {
   try {
     let token = req?.cookies?.token;
@@ -30,5 +31,23 @@ export const UserAuth = async (req: any, res: any, next: Function) => {
     next();
   } catch (err: any) {
     res.status(400).send("ERROR: " + err.message);
+  }
+};
+
+// optional for login/without login  for public api 
+export const OptionalAuth = async (req: any, res: any, next: Function) => {
+  try {
+    const token = req.cookies?.token;
+    if (token) {
+      const decoded: any = await jwt.verify(
+        token,
+        process.env.SECRET_KEY as string,
+      );
+      const user = UserModel.findById(decoded.id);
+      req.user = user;
+    }
+    next();
+  } catch (err: any) {
+    next(); // ignoring errors
   }
 };
