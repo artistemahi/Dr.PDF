@@ -12,7 +12,6 @@ const fileSchema = new mongoose.Schema<Data>({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true,
   },
   originalName: String,
   fileName: String,

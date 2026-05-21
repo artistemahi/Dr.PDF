@@ -25,6 +25,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "archiver": "^8.0.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -37,6 +38,7 @@
     "validator": "^13.15.35"
   },
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",

@@ -16,7 +16,8 @@ const mergePdf = async (filePaths:String)=>{
     pages.forEach((page)=>{
        return  emptypdf.addPage(page);
     });
-    const mergedPdfBytes = await emptypdf.save();
- }
+   }
+   const mergedPdfBytes = await emptypdf.save();
+   return mergedPdfBytes;
 }
 export default mergePdf;
