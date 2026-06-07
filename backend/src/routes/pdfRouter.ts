@@ -8,6 +8,7 @@ import { FileModel } from "../models/fileSchema";
 import { parseRanges } from "../utils/functions";
 import { splitPdf } from "../utils/splitPdf";
 import { sendZip } from "../utils/zipFiles";
+import { parsePageFromPages } from "../utils/functions";
 export const pdfRouter = express.Router();
 
 // pdf/merge
@@ -38,7 +39,7 @@ pdfRouter.post(
       let savedFile = null;
       if (req.user) {
         const fileName = `merged-${Date.now()}.pdf`;
-        const filePath = `uploads/${fileName}`;
+        const filePath = `uploads/user-files${fileName}`;
 
         fs.writeFileSync(filePath, mergedPdf);
 
@@ -81,16 +82,13 @@ pdfRouter.post(
   OptionalAuth,
   upload.single("file"),
   async (req: any, res: any) => {
+    let uploadedFilePath = "";
+
     try {
       const file = req.file as Express.Multer.File;
-      if (file.mimetype !== "application/pdf") {
-        return res.status(400).json({
-          success: false,
-          message: "Only PDF files are allowed",
-        });
-      }
       const { ranges } = req.body;
 
+      // File validation
       if (!file) {
         return res.status(400).json({
           success: false,
@@ -98,6 +96,17 @@ pdfRouter.post(
         });
       }
 
+      uploadedFilePath = file.path;
+
+      // Only PDF allowed
+      if (file.mimetype !== "application/pdf") {
+        return res.status(400).json({
+          success: false,
+          message: "Only PDF files are allowed",
+        });
+      }
+
+      // Range validation
       if (!ranges) {
         return res.status(400).json({
           success: false,
@@ -105,10 +114,10 @@ pdfRouter.post(
         });
       }
 
-      // Parse ranges string into array
+      // Parse ranges
       const parsedRanges = parseRanges(ranges);
 
-      // Read uploaded file
+      // Read uploaded PDF
       const pdfBytes = fs.readFileSync(file.path);
 
       // Load PDF
@@ -116,27 +125,25 @@ pdfRouter.post(
 
       const totalPages = pdf.getPageCount();
 
-      // Validate ranges
+      // Validate page ranges
       parsedRanges.forEach(([start, end]: number[]) => {
         if (start < 1 || end > totalPages || start > end) {
           throw new Error(`Invalid range: ${start}-${end}`);
         }
       });
 
-      // Split PDF into multiple buffers
+      // Split PDF
       const splitBuffers = await splitPdf(pdf, parsedRanges);
 
-      let savedFiles: any[] = [];
-
-      // If user is logged in, save files
-      if (req.user) {
+      // Save files for logged-in users
+      if (req.user?._id) {
         for (const fileObj of splitBuffers) {
           const fileName = `${Date.now()}-${fileObj.name}`;
-          const filePath = `uploads/${fileName}`;
+          const filePath = `uploads/user-files${fileName}`;
 
-          fs.writeFileSync(filePath, fileObj.buffer);
+          fs.writeFileSync(filePath, Buffer.from(fileObj.buffer));
 
-          const saved = await FileModel.create({
+          await FileModel.create({
             userId: req.user._id,
             originalName: fileObj.name,
             fileName,
@@ -144,37 +151,47 @@ pdfRouter.post(
             fileType: "application/pdf",
             size: Buffer.from(fileObj.buffer).length,
           });
-
-          savedFiles.push(saved);
         }
       }
 
-      // Delete uploaded input file
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
-
-      // Send ZIP response
-      sendZip(res, splitBuffers, "split-files.zip");
+      // Send zip to user
+      return sendZip(res, splitBuffers, "split-files.zip");
     } catch (err: any) {
-      res.status(500).json({
+      return res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    } finally {
+      // Remove uploaded input file
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+    }
+  },
+);
+
+// pdf/extract-pages
+pdfRouter.post(
+  "/pdf/extract-pages",
+  OptionalAuth,
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      // file upload and page numbers in body
+      const file = req.file as Express.Multer.File;
+      const { pages } = req.body; // geting as a string from body, need to convert it into array of numbers
+      // console.log(pages);
+      // console.log(typeof pages);
+      const result = parsePageFromPages(pages);
+      // console.log(result);
+    } catch (err: any) {
+      res.status(400).json({
         success: false,
         message: err.message,
       });
     }
   },
 );
-
-// pdf/extract-pages
-pdfRouter.post("/pdf/extract-pages", OptionalAuth, async (req, res) => {
-  try {
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-});
 
 // pdf/delete-pages
 pdfRouter.post("/pdf/delete-pages", OptionalAuth, async (req, res) => {

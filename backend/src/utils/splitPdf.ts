@@ -19,7 +19,7 @@ export const splitPdf = async (pdf: any, parsedRanges: number[][]) => {
 
     splitBuffers.push({
       name: `part-${i + 1}.pdf`,
-      buffer: pdfBytes,
+      buffer: Buffer.from(pdfBytes),
     });
   }
 

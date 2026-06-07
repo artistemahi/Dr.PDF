@@ -91,7 +91,6 @@ This document contains all API endpoints for the Dr.PDF platform.
 
 - POST /convert/word-to-pdf
 - POST /convert/image-to-pdf
-
 ---
 
 ## 🧠 AI APIs (Core USP)
