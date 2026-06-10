@@ -12,13 +12,25 @@ export const parsePageFromPages = (pages: string) => {
       const [start, end] = page.split("-");
       const s = parseInt(start, 10);
       const e = parseInt(end, 10);
+      if(s<e){
+        throw new Error(`invalid page range ${page}`);
+      }
+      else if(isNaN(s)||isNaN(e)){  // parseint alphabet ko  NaN me bna deta h 
+        throw new Error(`invalid page range ${page}`)
+      }
       for (let i = s; i <= e; i++) {
-        pageNumberArrayOfNumbers.push(i);
+        if(!pageNumberArrayOfNumbers.includes(i)){
+          pageNumberArrayOfNumbers.push(i);
+        }
       }
     }
     else {
-      pageNumberArrayOfNumbers.push(parseInt(page));
-    }
+      if(isNaN(parseInt(page, 10))) {
+        throw new Error(`invalid page number ${page}`);
+      }
+      if(!pageNumberArrayOfNumbers.includes(parseInt(page,10))){
+      pageNumberArrayOfNumbers.push(parseInt(page,10));
+    }}
   }
   return pageNumberArrayOfNumbers;
 };
