@@ -1,6 +1,6 @@
 import fs from "fs";
 import { PDFDocument } from "pdf-lib";
-import express from "express";
+import express, { Request, Response } from "express";
 import { OptionalAuth } from "../middleware/auth";
 import { upload } from "../config/multer";
 import mergePdf from "../utils/mergepdf";
@@ -9,6 +9,15 @@ import { parseRanges } from "../utils/functions";
 import { splitPdf } from "../utils/splitPdf";
 import { sendZip } from "../utils/zipFiles";
 import { parsePageFromPages } from "../utils/functions";
+import { ValidationFnForConvertingPageNumberToZeroBasedIndex } from "../utils/validationFn";
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    _id?: string;
+    [key: string]: any;
+  };
+}
+
 export const pdfRouter = express.Router();
 
 // pdf/merge
@@ -175,20 +184,82 @@ pdfRouter.post(
   "/pdf/extract-pages",
   OptionalAuth,
   upload.single("file"),
-  async (req, res) => {
+  async (req: Request, res: Response) => {
+    let uploadedFilePath = "";
     try {
       // file upload and page numbers in body
       const file = req.file as Express.Multer.File;
+      // validation of file
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          message: "No file uploaded",
+        });
+      }
+      if (file.mimetype !== "application/pdf") {
+        return res.status(400).json({
+          success: false,
+          message: "Only PDF files are allowed",
+        });
+      }
+      uploadedFilePath = file.path;
       const { pages } = req.body; // geting as a string from body, need to convert it into array of numbers
-      // console.log(pages);
-      // console.log(typeof pages);
-      const result = parsePageFromPages(pages);
-      // console.log(result);
+      // validation of pages
+      if (!pages) {
+        return res.status(400).json({
+          success: false,
+          message: "No pages specified",
+        });
+      }
+      const PageNumber = parsePageFromPages(pages);
+      // loading the file
+      const PdfBytes = fs.readFileSync(file.path); // raw data
+      const Pdf = await PDFDocument.load(PdfBytes); // object data
+      const extractedPages = await PDFDocument.create(); // new pdf document to add extracted pages
+      // validatin of page numbers
+      ValidationFnForConvertingPageNumberToZeroBasedIndex(Pdf, PageNumber);
+      const PagesToCopy = await extractedPages.copyPages(
+        Pdf,
+        PageNumber.map((num: number) => num - 1), // convert to zero-based indexs
+      );
+      PagesToCopy.forEach((page) => extractedPages.addPage(page));
+      const extractedPdfBytes = await extractedPages.save();
+
+      // Save file for logged-in users
+      const user = (req as any).user;
+      if (user && user._id) {
+        const fileName = `extracted-${Date.now()}.pdf`;
+        const filePath = `uploads/user-files/${fileName}`;
+        fs.writeFileSync(filePath, Buffer.from(extractedPdfBytes));
+
+        await FileModel.create({
+          userId: user._id,
+          originalName: "extracted-pages.pdf",
+          fileName,
+          filePath,
+          fileType: "application/pdf",
+          size: Buffer.from(extractedPdfBytes).length,
+        });
+      }
+      res.setHeader("Content-Type", "application/pdf");
+
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=extracted-pages.pdf",
+      );
+
+      return res.send(Buffer.from(extractedPdfBytes));
     } catch (err: any) {
       res.status(400).json({
         success: false,
         message: err.message,
       });
+    } finally {
+      // delete uploaded temp file
+
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
     }
   },
 );

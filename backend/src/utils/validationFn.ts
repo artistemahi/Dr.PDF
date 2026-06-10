@@ -1,5 +1,5 @@
 import Validator from "validator";
-
+import { PDFDocument } from "pdf-lib";
 export const ValidationFn = (
   firstName: string,
   lastName: string,
@@ -41,4 +41,13 @@ export const ValidateProfileEdit = (body:any)=>{
      }
    });
    return true;
+};
+
+export const ValidationFnForConvertingPageNumberToZeroBasedIndex = (Pdf:PDFDocument,PageNumber:number[])=>{
+    const totalPages = Pdf.getPageCount();
+    PageNumber.forEach((PageNum:number)=>{
+      if(!PageNum||PageNum<1 || PageNum>totalPages){
+        throw new Error(`invalid Pages ${PageNum}`);
+      }
+    })
 };
