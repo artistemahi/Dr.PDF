@@ -12,7 +12,7 @@ export const parsePageFromPages = (pages: string) => {
       const [start, end] = page.split("-");
       const s = parseInt(start, 10);
       const e = parseInt(end, 10);
-      if(s<e){
+      if(s>e){
         throw new Error(`invalid page range ${page}`);
       }
       else if(isNaN(s)||isNaN(e)){  // parseint alphabet ko  NaN me bna deta h 

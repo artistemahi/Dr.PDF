@@ -208,7 +208,7 @@ pdfRouter.post(
       if (!pages) {
         return res.status(400).json({
           success: false,
-          message: "No pages specified",
+          message: "No pages specified to extract",
         });
       }
       const PageNumber = parsePageFromPages(pages);
@@ -265,13 +265,40 @@ pdfRouter.post(
 );
 
 // pdf/delete-pages
-pdfRouter.post("/pdf/delete-pages", OptionalAuth, async (req, res) => {
+pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (req, res) => {
   try {
+      // load the file 
+      const file = req.file as Express.Multer.File;
+      if(!file){
+      return res.status(400).json({
+          success: false,
+          message: "No file uploaded",
+        });
+      }
+      if(file.mimetype !== "application/pdf"){
+        return res.status(400).json({
+          success: false,
+          message: "Only PDF files are allowed",
+        });
+      }
+      const {pages} = req.body;
+      if(!pages){
+      return res.status(400).json({
+          success: false,
+          message: "No pages specified to delete",
+        });
+      }
+      // parsing pages 
+      const PageNumber = parsePageFromPages(pages);
+      console.log(PageNumber);
+
   } catch (err: any) {
     res.status(400).json({
       success: false,
       message: err.message,
     });
+  } finally{
+
   }
 });
 
