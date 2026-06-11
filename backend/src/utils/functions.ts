@@ -43,9 +43,12 @@ export const RemainingPages = (Pdf: any, pagesToDelete: number[]) => {
   );
   const remaingPages: number[] = [];
   for (let i = 0; i < totalPage; i++) {
-    if (!remaingPages.includes(i) && !PagesToDeleteZeroIndex.includes(i)) {
+    if (!PagesToDeleteZeroIndex.includes(i)) {
       remaingPages.push(i);
     }
+  }
+  if (remaingPages.length === 0) {
+    throw new Error("Cannot delete all pages");
   }
   return remaingPages;
 };

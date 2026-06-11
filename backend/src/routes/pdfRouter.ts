@@ -305,14 +305,46 @@ pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (
       // creating the new pdf file
       const deletedPDF = await PDFDocument.create();
 
+      // copy the remaining pages to new pdf file
+      const PagesToCopy = await deletedPDF.copyPages(Pdf,remainingPages);
+      // adding pages to new pdf file
+      PagesToCopy.forEach((page)=>deletedPDF.addPage(page));
+      // saving the pdf file as bytes
+      const deletedPdfBytes = await deletedPDF.save();
 
+      // Save file for logged-in users
+      const user = (req as any).user;
+      if(user && user._id){
+        const fileName = `deleted-${Date.now()}.pdf`;
+        const filePath = `uploads/user-files/${fileName}`;
+        fs.writeFileSync(filePath, Buffer.from(deletedPdfBytes));
+
+        await FileModel.create({
+          userId: user._id,
+          originalName: "deleted-pages.pdf",
+          fileName,
+          filePath,
+          fileType: "application/pdf",
+          size: Buffer.from(deletedPdfBytes).length,
+        });
+      }
+      res.setHeader("Content-Type", "application/pdf");
+
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=deleted-pages.pdf",
+      );
+      // else returning for non logged in users
+      return res.send(Buffer.from(deletedPdfBytes));
   } catch (err: any) {
     res.status(400).json({
       success: false,
       message: err.message,
     });
   } finally{
-
+    if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
+      fs.unlinkSync(uploadedFilePath);
+    };
   }
 });
 
