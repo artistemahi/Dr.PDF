@@ -328,8 +328,9 @@ pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (
           size: Buffer.from(deletedPdfBytes).length,
         });
       }
-      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Type", "application/pdf"); // telling browser that we are sending pdf file
 
+      // telling browser to download the file instead of displaying it on the browser and giving it a name "deleted-pages.pdf"
       res.setHeader(
         "Content-Disposition",
         "attachment; filename=deleted-pages.pdf",
@@ -351,6 +352,7 @@ pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (
 // pdf/reorder-pages
 pdfRouter.post("/pdf/reorder-pages", OptionalAuth, async (req, res) => {
   try {
+
   } catch (err: any) {
     res.status(400).json({
       success: false,

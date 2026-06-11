@@ -56,7 +56,7 @@ This document contains all API endpoints for the Dr.PDF platform.
 
 ---
 
-#### Editing
+#### Editing (optional)
 - POST /pdf/edit
 - POST /pdf/add-text
 - POST /pdf/add-image
