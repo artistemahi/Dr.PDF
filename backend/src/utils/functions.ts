@@ -1,3 +1,4 @@
+import { ValidationFnForConvertingPageNumberToZeroBasedIndex } from "./validationFn";
 export const parseRanges = (ranges: string) => {
   return ranges.split(",").map((part) => {
     const [start, end] = part.split("-");
@@ -12,25 +13,39 @@ export const parsePageFromPages = (pages: string) => {
       const [start, end] = page.split("-");
       const s = parseInt(start, 10);
       const e = parseInt(end, 10);
-      if(s>e){
+      if (s > e) {
+        throw new Error(`invalid page range ${page}`);
+      } else if (isNaN(s) || isNaN(e)) {
+        // parseint alphabet ko  NaN me bna deta h
         throw new Error(`invalid page range ${page}`);
       }
-      else if(isNaN(s)||isNaN(e)){  // parseint alphabet ko  NaN me bna deta h 
-        throw new Error(`invalid page range ${page}`)
-      }
       for (let i = s; i <= e; i++) {
-        if(!pageNumberArrayOfNumbers.includes(i)){
+        if (!pageNumberArrayOfNumbers.includes(i)) {
           pageNumberArrayOfNumbers.push(i);
         }
       }
-    }
-    else {
-      if(isNaN(parseInt(page, 10))) {
+    } else {
+      if (isNaN(parseInt(page, 10))) {
         throw new Error(`invalid page number ${page}`);
       }
-      if(!pageNumberArrayOfNumbers.includes(parseInt(page,10))){
-      pageNumberArrayOfNumbers.push(parseInt(page,10));
-    }}
+      if (!pageNumberArrayOfNumbers.includes(parseInt(page, 10))) {
+        pageNumberArrayOfNumbers.push(parseInt(page, 10));
+      }
+    }
   }
   return pageNumberArrayOfNumbers;
+};
+export const RemainingPages = (Pdf: any, pagesToDelete: number[]) => {
+  const totalPage = Pdf.getPageCount();
+  ValidationFnForConvertingPageNumberToZeroBasedIndex(Pdf, pagesToDelete);
+  const PagesToDeleteZeroIndex = pagesToDelete.map(
+    (PageNum: number) => PageNum - 1,
+  );
+  const remaingPages: number[] = [];
+  for (let i = 0; i < totalPage; i++) {
+    if (!remaingPages.includes(i) && !PagesToDeleteZeroIndex.includes(i)) {
+      remaingPages.push(i);
+    }
+  }
+  return remaingPages;
 };

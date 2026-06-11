@@ -9,6 +9,7 @@ import { parseRanges } from "../utils/functions";
 import { splitPdf } from "../utils/splitPdf";
 import { sendZip } from "../utils/zipFiles";
 import { parsePageFromPages } from "../utils/functions";
+import { RemainingPages } from "../utils/functions";
 import { ValidationFnForConvertingPageNumberToZeroBasedIndex } from "../utils/validationFn";
 
 interface AuthenticatedRequest extends Request {
@@ -266,6 +267,7 @@ pdfRouter.post(
 
 // pdf/delete-pages
 pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (req, res) => {
+  let uploadedFilePath = "";
   try {
       // load the file 
       const file = req.file as Express.Multer.File;
@@ -281,6 +283,7 @@ pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (
           message: "Only PDF files are allowed",
         });
       }
+      uploadedFilePath = file.path;
       const {pages} = req.body;
       if(!pages){
       return res.status(400).json({
@@ -289,8 +292,19 @@ pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (
         });
       }
       // parsing pages 
-      const PageNumber = parsePageFromPages(pages);
-      console.log(PageNumber);
+      const PageNumberToDelete = parsePageFromPages(pages);
+
+      // loading the file 
+      const PdfBytes = fs.readFileSync(uploadedFilePath);
+      const Pdf = await PDFDocument.load(PdfBytes);
+
+      // removing the pages index from total pages 
+      const remainingPages = RemainingPages(Pdf,PageNumberToDelete);
+      
+
+      // creating the new pdf file
+      const deletedPDF = await PDFDocument.create();
+
 
   } catch (err: any) {
     res.status(400).json({
