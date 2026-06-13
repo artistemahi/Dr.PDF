@@ -36,16 +36,16 @@ pdfRouter.post(
   async (req: Request, res: Response) => {
     try {
       const files = req.files as Express.Multer.File[];
-      if (files.some((file) => file.mimetype !== "application/pdf")) {
-        return res.status(400).json({
-          success: false,
-          message: "Only PDF files are allowed",
-        });
-      }
       if (!files || files.length === 0) {
         return res.status(400).json({
           success: false,
           message: "No file uploaded !",
+        });
+      }
+      if (files.some((file) => file.mimetype !== "application/pdf")) {
+        return res.status(400).json({
+          success: false,
+          message: "Only PDF files are allowed",
         });
       }
       const filePaths: any = files.map((file: any) => {
@@ -57,7 +57,7 @@ pdfRouter.post(
       const user = (req as any).user;
       if (user) {
         const fileName = `merged-${Date.now()}.pdf`;
-        const filePath = `uploads/user-files${fileName}`;
+        const filePath = `uploads/user-files/${fileName}`;
 
         fs.writeFileSync(filePath, mergedPdf);
 
@@ -158,7 +158,7 @@ pdfRouter.post(
       if (user) {
         for (const fileObj of splitBuffers) {
           const fileName = `${Date.now()}-${fileObj.name}`;
-          const filePath = `uploads/user-files${fileName}`;
+          const filePath = `uploads/user-files/${fileName}`;
 
           fs.writeFileSync(filePath, Buffer.from(fileObj.buffer));
 
@@ -388,11 +388,13 @@ pdfRouter.post(
       const Pdf = await PDFDocument.load(PdfBytes);
       // parsing page order
       const NewPageOrder = parseOrder(order);
-      // converting page order to zero based index
-      const zeroBasedIndexOfPages = getZeroBasedIndexOfPages(NewPageOrder);
 
       // validation for page order
       ValidationFnForOrder(Pdf, NewPageOrder);
+      // converting page order to zero based index
+      const zeroBasedIndexOfPages = getZeroBasedIndexOfPages(NewPageOrder);
+
+      // creating new pdf file and copying pages in new order
       const NewPdf = await PDFDocument.create();
       const PagesToCopy = await NewPdf.copyPages(Pdf, zeroBasedIndexOfPages);
       PagesToCopy.forEach((page) => NewPdf.addPage(page));
