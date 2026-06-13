@@ -52,3 +52,19 @@ export const RemainingPages = (Pdf: any, pagesToDelete: number[]) => {
   }
   return remaingPages;
 };
+
+export const getZeroBasedIndexOfPages= ((order:number[])=>{
+  const zeroBasedIndexOfPages = order.map((pageNum:number)=>{return pageNum-1})
+  return zeroBasedIndexOfPages;
+})
+export const parseOrder = (order:string)=>{
+  const orderArrayOfNumbers: number[] = [];
+  const orderArrayOfString: string[] = order.split(",");
+  for (const page of orderArrayOfString) {
+    if (isNaN(parseInt(page, 10))) {
+      throw new Error(`invalid page number ${page}`);
+    }
+    orderArrayOfNumbers.push(parseInt(page, 10));
+  }
+  return orderArrayOfNumbers;
+}

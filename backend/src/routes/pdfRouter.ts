@@ -5,12 +5,19 @@ import { OptionalAuth } from "../middleware/auth";
 import { upload } from "../config/multer";
 import mergePdf from "../utils/mergepdf";
 import { FileModel } from "../models/fileSchema";
-import { parseRanges } from "../utils/functions";
+import {
+  parseOrder,
+  getZeroBasedIndexOfPages,
+  parseRanges,
+} from "../utils/functions";
 import { splitPdf } from "../utils/splitPdf";
 import { sendZip } from "../utils/zipFiles";
 import { parsePageFromPages } from "../utils/functions";
 import { RemainingPages } from "../utils/functions";
-import { ValidationFnForConvertingPageNumberToZeroBasedIndex } from "../utils/validationFn";
+import {
+  ValidationFnForConvertingPageNumberToZeroBasedIndex,
+  ValidationFnForOrder,
+} from "../utils/validationFn";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -26,7 +33,7 @@ pdfRouter.post(
   "/pdf/merge",
   OptionalAuth,
   upload.array("files", 10),
-  async (req: any, res: any) => {
+  async (req: Request, res: Response) => {
     try {
       const files = req.files as Express.Multer.File[];
       if (files.some((file) => file.mimetype !== "application/pdf")) {
@@ -47,14 +54,15 @@ pdfRouter.post(
       const mergedPdf: any = await mergePdf(filePaths);
 
       let savedFile = null;
-      if (req.user) {
+      const user = (req as any).user;
+      if (user) {
         const fileName = `merged-${Date.now()}.pdf`;
         const filePath = `uploads/user-files${fileName}`;
 
         fs.writeFileSync(filePath, mergedPdf);
 
         savedFile = await FileModel.create({
-          userId: req.user._id,
+          userId: user._id,
           originalName: "merged.pdf",
           fileName,
           filePath,
@@ -91,7 +99,7 @@ pdfRouter.post(
   "/pdf/split",
   OptionalAuth,
   upload.single("file"),
-  async (req: any, res: any) => {
+  async (req: Request, res: Response) => {
     let uploadedFilePath = "";
 
     try {
@@ -146,7 +154,8 @@ pdfRouter.post(
       const splitBuffers = await splitPdf(pdf, parsedRanges);
 
       // Save files for logged-in users
-      if (req.user?._id) {
+      const user = (req as any).user;
+      if (user) {
         for (const fileObj of splitBuffers) {
           const fileName = `${Date.now()}-${fileObj.name}`;
           const filePath = `uploads/user-files${fileName}`;
@@ -154,7 +163,7 @@ pdfRouter.post(
           fs.writeFileSync(filePath, Buffer.from(fileObj.buffer));
 
           await FileModel.create({
-            userId: req.user._id,
+            userId: user._id,
             originalName: fileObj.name,
             fileName,
             filePath,
@@ -251,7 +260,7 @@ pdfRouter.post(
 
       return res.send(Buffer.from(extractedPdfBytes));
     } catch (err: any) {
-     return res.status(400).json({
+      return res.status(400).json({
         success: false,
         message: err.message,
       });
@@ -266,55 +275,58 @@ pdfRouter.post(
 );
 
 // pdf/delete-pages
-pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (req, res) => {
-  let uploadedFilePath = "";
-  try {
-      // load the file 
+pdfRouter.post(
+  "/pdf/delete-pages",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath = "";
+    try {
+      // load the file
       const file = req.file as Express.Multer.File;
-      if(!file){
-      return res.status(400).json({
+      if (!file) {
+        return res.status(400).json({
           success: false,
           message: "No file uploaded",
         });
       }
-      if(file.mimetype !== "application/pdf"){
+      if (file.mimetype !== "application/pdf") {
         return res.status(400).json({
           success: false,
           message: "Only PDF files are allowed",
         });
       }
       uploadedFilePath = file.path;
-      const {pages} = req.body;
-      if(!pages){
-      return res.status(400).json({
+      const { pages } = req.body;
+      if (!pages) {
+        return res.status(400).json({
           success: false,
           message: "No pages specified to delete",
         });
       }
-      // parsing pages 
+      // parsing pages
       const PageNumberToDelete = parsePageFromPages(pages);
 
-      // loading the file 
+      // loading the file
       const PdfBytes = fs.readFileSync(uploadedFilePath);
       const Pdf = await PDFDocument.load(PdfBytes);
 
-      // removing the pages index from total pages 
-      const remainingPages = RemainingPages(Pdf,PageNumberToDelete);
-      
+      // removing the pages index from total pages
+      const remainingPages = RemainingPages(Pdf, PageNumberToDelete);
 
       // creating the new pdf file
       const deletedPDF = await PDFDocument.create();
 
       // copy the remaining pages to new pdf file
-      const PagesToCopy = await deletedPDF.copyPages(Pdf,remainingPages);
+      const PagesToCopy = await deletedPDF.copyPages(Pdf, remainingPages);
       // adding pages to new pdf file
-      PagesToCopy.forEach((page)=>deletedPDF.addPage(page));
+      PagesToCopy.forEach((page) => deletedPDF.addPage(page));
       // saving the pdf file as bytes
       const deletedPdfBytes = await deletedPDF.save();
 
       // Save file for logged-in users
       const user = (req as any).user;
-      if(user && user._id){
+      if (user && user._id) {
         const fileName = `deleted-${Date.now()}.pdf`;
         const filePath = `uploads/user-files/${fileName}`;
         fs.writeFileSync(filePath, Buffer.from(deletedPdfBytes));
@@ -337,26 +349,86 @@ pdfRouter.post("/pdf/delete-pages", OptionalAuth, upload.single("file"), async (
       );
       // else returning for non logged in users
       return res.send(Buffer.from(deletedPdfBytes));
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  } finally{
-    if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
-      fs.unlinkSync(uploadedFilePath);
-    };
-  }
-});
+    } catch (err: any) {
+      res.status(400).json({
+        success: false,
+        message: err.message,
+      });
+    } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+    }
+  },
+);
 
 // pdf/reorder-pages
-pdfRouter.post("/pdf/reorder-pages", OptionalAuth, async (req, res) => {
-  try {
+pdfRouter.post(
+  "/pdf/reorder-pages",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath = "";
+    try {
+      // file load
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        throw new Error("No file uploaded");
+      }
+      if (file.mimetype !== "application/pdf") {
+        throw new Error("Only PDF files are allowed");
+      }
+      uploadedFilePath = file.path;
+      const { order } = req.body;
+      if (!order) {
+        throw new Error("No page order specified");
+      }
+      // loading the file
+      const PdfBytes = fs.readFileSync(uploadedFilePath);
+      const Pdf = await PDFDocument.load(PdfBytes);
+      // parsing page order
+      const NewPageOrder = parseOrder(order);
+      // converting page order to zero based index
+      const zeroBasedIndexOfPages = getZeroBasedIndexOfPages(NewPageOrder);
 
-  } catch (err: any) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-});
+      // validation for page order
+      ValidationFnForOrder(Pdf, NewPageOrder);
+      const NewPdf = await PDFDocument.create();
+      const PagesToCopy = await NewPdf.copyPages(Pdf, zeroBasedIndexOfPages);
+      PagesToCopy.forEach((page) => NewPdf.addPage(page));
+
+      const NewPdfBytes = await NewPdf.save();
+
+      // save file for logged-in users
+      const user = (req as any).user;
+      if (user && user._id) {
+        const fileName = `reordered-${Date.now()}.pdf`;
+        const filePath = `uploads/user-files/${fileName}`;
+        fs.writeFileSync(filePath, Buffer.from(NewPdfBytes));
+        await FileModel.create({
+          userId: user._id,
+          originalName: "reordered-pages.pdf",
+          fileName,
+          filePath,
+          fileType: "application/pdf",
+          size: Buffer.from(NewPdfBytes).length,
+        });
+      }
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "content-disposition",
+        "attachment; filename=reordered-pages.pdf",
+      );
+      res.send(Buffer.from(NewPdfBytes));
+    } catch (err: any) {
+      return res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+    }
+  },
+);

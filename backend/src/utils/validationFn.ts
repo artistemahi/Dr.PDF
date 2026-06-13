@@ -46,8 +46,23 @@ export const ValidateProfileEdit = (body:any)=>{
 export const ValidationFnForConvertingPageNumberToZeroBasedIndex = (Pdf:PDFDocument,PageNumber:number[])=>{
     const totalPages = Pdf.getPageCount();
     PageNumber.forEach((PageNum:number)=>{
-      if(!PageNum||PageNum<1 || PageNum>totalPages){
+      if(isNaN(PageNum)||PageNum<1 || PageNum>totalPages){
         throw new Error(`invalid Pages ${PageNum}`);
       }
     })
 };
+export const ValidationFnForOrder =((Pdf:PDFDocument, order:number[])=>{
+  const totalPages = Pdf.getPageCount();
+  const uniquePages = new Set(order);
+  if(order.length !== totalPages){
+    throw new Error(`Order must include all pages exactly once. Total pages: ${totalPages}`);
+  }
+  if(uniquePages.size !== order.length){
+    throw new Error("Duplicate page numbers are not allowed in order");
+  }
+  order.forEach((PageNum:number)=>{
+    if(isNaN(PageNum)||PageNum<1||PageNum>totalPages){
+      throw new Error(`invalid page number ${PageNum} in order`);
+    }
+  })
+})
