@@ -57,14 +57,39 @@ export const getZeroBasedIndexOfPages= ((order:number[])=>{
   const zeroBasedIndexOfPages = order.map((pageNum:number)=>{return pageNum-1})
   return zeroBasedIndexOfPages;
 })
-export const parseOrder = (order:string)=>{
+export const parseOrder = (order: string) => {
   const orderArrayOfNumbers: number[] = [];
-  const orderArrayOfString: string[] = order.split(",");
+
+  const orderArrayOfString = order.split(",");
+
   for (const page of orderArrayOfString) {
-    if (isNaN(parseInt(page, 10))) {
-      throw new Error(`invalid page number ${page}`);
+
+    if (page.includes("-")) {
+
+      const [start, end] = page.split("-");
+
+      const s = parseInt(start, 10);
+      const e = parseInt(end, 10);
+
+      if (isNaN(s) || isNaN(e) || s > e) {
+        throw new Error(`invalid page range ${page}`);
+      }
+
+      for (let i = s; i <= e; i++) {
+        orderArrayOfNumbers.push(i);
+      }
+
+    } else {
+
+      const pageNum = parseInt(page, 10);
+
+      if (isNaN(pageNum)) {
+        throw new Error(`invalid page number ${page}`);
+      }
+
+      orderArrayOfNumbers.push(pageNum);
     }
-    orderArrayOfNumbers.push(parseInt(page, 10));
   }
+
   return orderArrayOfNumbers;
-}
+};

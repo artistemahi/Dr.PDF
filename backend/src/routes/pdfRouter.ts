@@ -19,13 +19,6 @@ import {
   ValidationFnForOrder,
 } from "../utils/validationFn";
 
-interface AuthenticatedRequest extends Request {
-  user?: {
-    _id?: string;
-    [key: string]: any;
-  };
-}
-
 export const pdfRouter = express.Router();
 
 // pdf/merge
