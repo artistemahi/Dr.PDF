@@ -21,6 +21,8 @@ import {
 
 export const pdfRouter = express.Router();
 
+//-------File Operations--------
+
 // pdf/merge
 pdfRouter.post(
   "/pdf/merge",
@@ -427,3 +429,55 @@ pdfRouter.post(
     }
   },
 );
+
+
+//-------Compression & Optimization--------
+
+// pdf/compress
+pdfRouter.post("/pdf/compress/level",OptionalAuth,upload.single("file"), async (req: Request, res: Response) => {
+  let uploadedFilePath ="";
+  try{
+    const file = req.file as Express.Multer.File;
+    if(!file){
+      throw new Error("No file uploaded");
+    }
+    if(file.mimetype !=="application/pdf"){
+      throw new Error("Only pdf are allowed");
+    }
+    uploadedFilePath = file.path;
+    const {level} = req.body;
+      if(level!=="low"||level!=="high"||level!=="medium"){
+        throw new Error("level is not valid. It should be low/medium/high");
+      }
+      
+    
+  }catch(err:any){
+    res.status(500).json({
+      success:false,
+      Error:err?.message,
+    })
+  }finally{
+    if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
+      fs.unlinkSync(uploadedFilePath);
+    }
+  }
+});
+
+
+//  pdf/optimize
+pdfRouter.post("/pdf/optimize",OptionalAuth,upload.single("file"), async (req: Request, res: Response) => {
+  let uploadedFilePath ="";
+  try{
+
+    
+  }catch(err:any){
+    res.status(500).json({
+      success:false,
+      Error:err?.message,
+    })
+  }finally{
+    if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
+      fs.unlinkSync(uploadedFilePath);
+    }
+  }
+});

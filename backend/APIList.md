@@ -47,7 +47,7 @@ This document contains all API endpoints for the Dr.PDF platform.
 
 #### Compression & Optimization
 - POST /pdf/compress
-- POST /pdf/optimize
+- POST /pdf/optimize  (scaling and improving quality)
 
 ---
 
