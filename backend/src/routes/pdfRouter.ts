@@ -18,7 +18,7 @@ import {
   ValidationFnForConvertingPageNumberToZeroBasedIndex,
   ValidationFnForOrder,
 } from "../utils/validationFn";
-
+import { compressPdf } from "../services/compression/Compress";
 export const pdfRouter = express.Router();
 
 //-------File Operations--------
@@ -430,54 +430,112 @@ pdfRouter.post(
   },
 );
 
-
 //-------Compression & Optimization--------
 
 // pdf/compress
-pdfRouter.post("/pdf/compress/level",OptionalAuth,upload.single("file"), async (req: Request, res: Response) => {
-  let uploadedFilePath ="";
-  try{
-    const file = req.file as Express.Multer.File;
-    if(!file){
-      throw new Error("No file uploaded");
-    }
-    if(file.mimetype !=="application/pdf"){
-      throw new Error("Only pdf are allowed");
-    }
-    uploadedFilePath = file.path;
-    const {level} = req.body;
-      if(level!=="low"||level!=="high"||level!=="medium"){
-        throw new Error("level is not valid. It should be low/medium/high");
+pdfRouter.post(
+  "/pdf/compress-level",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath = "";
+    let outputFilePath = "";
+    try {
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        throw new Error("No file uploaded");
       }
-      
-    
-  }catch(err:any){
-    res.status(500).json({
-      success:false,
-      Error:err?.message,
-    })
-  }finally{
-    if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
-      fs.unlinkSync(uploadedFilePath);
-    }
-  }
-});
+      if (file.mimetype !== "application/pdf") {
+        throw new Error("Only pdf are allowed");
+      }
+      uploadedFilePath = file.path;
+      const { level } = req.body;
+      if (!level || !["low", "medium", "high"].includes(level)) {
+        return res.status(400).json({
+          success: false,
+          message: "Level must be low, medium or high",
+        });
+      }
+      const originalSize = fs.statSync(uploadedFilePath).size;
+      // output file path
+      const outputFilePath = `uploads/temp/compressed-${Date.now()}.pdf`;
 
+      // calling the compressed function
+      const result = await compressPdf(uploadedFilePath, outputFilePath, level);
+      const compressedSize = fs.statSync(outputFilePath).size;
+      const savedPercentage = (
+        ((originalSize - compressedSize) / originalSize) *
+        100
+      ).toFixed(2);
+      const user = (req as any).user;
+
+      if (user && user._id) {
+        const fileName = `compressed-${Date.now()}.pdf`;
+
+        const permanentPath = `uploads/user-files/${fileName}`;
+
+        fs.copyFileSync(outputFilePath, permanentPath);
+
+        await FileModel.create({
+          userId: user._id,
+          originalName: "compressed.pdf",
+          fileName,
+          filePath: permanentPath,
+          fileType: "application/pdf",
+          size: compressedSize,
+        });
+      }
+      res.setHeader(
+        "X-Original-Size",
+        `${(originalSize / 1024 / 1024).toFixed(2)} MB`,
+      );
+
+      res.setHeader(
+        "X-Compressed-Size",
+        `${(compressedSize / 1024 / 1024).toFixed(2)} MB`,
+      );
+
+      res.setHeader("X-Saved-Percentage", `${savedPercentage}%`);
+
+      return res.download(outputFilePath, "compressed.pdf", (err) => {
+        if (err) {
+          console.error(err);
+        }
+
+        if (outputFilePath && fs.existsSync(outputFilePath)) {
+          fs.unlinkSync(outputFilePath);
+        }
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        Error: err?.message,
+      });
+    } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+    }
+  },
+);
 
 //  pdf/optimize
-pdfRouter.post("/pdf/optimize",OptionalAuth,upload.single("file"), async (req: Request, res: Response) => {
-  let uploadedFilePath ="";
-  try{
-
-    
-  }catch(err:any){
-    res.status(500).json({
-      success:false,
-      Error:err?.message,
-    })
-  }finally{
-    if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
-      fs.unlinkSync(uploadedFilePath);
+pdfRouter.post(
+  "/pdf/optimize",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath = "";
+    try {
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        Error: err?.message,
+      });
+    } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
     }
-  }
-});
+  },
+);
