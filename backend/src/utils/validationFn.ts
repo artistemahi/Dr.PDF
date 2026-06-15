@@ -67,7 +67,7 @@ export const ValidationFnForOrder =((Pdf:PDFDocument, order:number[])=>{
   })
 });
 export const ValidationFnForSize=(size:number)=>{
-  if(!isNaN(size)||size<=0){
+  if(isNaN(size)||size<=0){
     throw new Error("Target size is not valid");
   }
 }; 

@@ -541,6 +541,7 @@ pdfRouter.post(
       const targetSize = Number(req.body.targetSize);
       ValidationFnForSize(targetSize);
       outputFilePath = `uploads/temp/target-${Date.now()}.pdf`;
+      
       await compressPdfToTarget(uploadedFilePath, outputFilePath, targetSize);
       return res.download(outputFilePath, "compressed.pdf", (err) => {
         if (outputFilePath && fs.existsSync(outputFilePath)) {

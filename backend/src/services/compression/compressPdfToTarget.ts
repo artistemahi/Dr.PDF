@@ -10,7 +10,8 @@ export const compressPdfToTarget = async (
   let high = 300;
   let bestFile = "";
   let bestDiff = Infinity;
-  for (let i = 0; i < 9; i++) {
+ 
+  for (let i = 0; i < 10; i++) {
     const dpi = Math.floor((low + high) / 2);
     const tempPath = `uploads/temp/test-${dpi}.pdf`;
     await compressPdfWithDPI(inputPath, tempPath, dpi);
@@ -36,6 +37,9 @@ export const compressPdfToTarget = async (
     } else {
       low = dpi + 1;
     }
+    console.log(
+  `DPI=${dpi} | Size=${sizeMb.toFixed(2)} MB | Diff=${diff.toFixed(2)} MB`,
+);
   }
   if (!bestFile || !fs.existsSync(bestFile)) {
     throw new Error("Unable to compress PDF to target size");

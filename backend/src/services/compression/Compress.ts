@@ -46,6 +46,9 @@ ${GS_COMMAND}
 -dNOPAUSE
 -dQUIET
 -dBATCH
+-dDownsampleColorImages=true
+-dDownsampleGrayImages=true
+-dDownsampleMonoImages=true
 -dColorImageDownsampleType=/Bicubic
 -dGrayImageDownsampleType=/Bicubic
 -dMonoImageDownsampleType=/Subsample
