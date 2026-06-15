@@ -65,4 +65,9 @@ export const ValidationFnForOrder =((Pdf:PDFDocument, order:number[])=>{
       throw new Error(`invalid page number ${PageNum} in order`);
     }
   })
-})
+});
+export const ValidationFnForSize=(size:number)=>{
+  if(!isNaN(size)||size<=0){
+    throw new Error("Target size is not valid");
+  }
+}; 

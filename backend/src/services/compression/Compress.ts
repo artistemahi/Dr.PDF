@@ -36,3 +36,27 @@ export const compressPdf = async (
   }
   return outputPath;
 };
+
+export const compressPdfWithDPI = async (inputPath:string,outputPath:string,dpi:number)=>{
+  const GS_COMMAND = process.platform==="win32" ? "gswin64c" :"gs";
+   const command = `
+${GS_COMMAND}
+-sDEVICE=pdfwrite
+-dCompatibilityLevel=1.4
+-dNOPAUSE
+-dQUIET
+-dBATCH
+-dColorImageDownsampleType=/Bicubic
+-dGrayImageDownsampleType=/Bicubic
+-dMonoImageDownsampleType=/Subsample
+-dColorImageResolution=${dpi}
+-dGrayImageResolution=${dpi}
+-dMonoImageResolution=${dpi}
+-sOutputFile="${outputPath}"
+"${inputPath}"
+`.replace(/\n/g, " ");
+
+  await execAsync(command);
+
+  return outputPath;
+};

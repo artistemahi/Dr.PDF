@@ -17,8 +17,10 @@ import { RemainingPages } from "../utils/functions";
 import {
   ValidationFnForConvertingPageNumberToZeroBasedIndex,
   ValidationFnForOrder,
+  ValidationFnForSize,
 } from "../utils/validationFn";
 import { compressPdf } from "../services/compression/Compress";
+import { compressPdfToTarget } from "../services/compression/compressPdfToTarget";
 export const pdfRouter = express.Router();
 
 //-------File Operations--------
@@ -432,7 +434,7 @@ pdfRouter.post(
 
 //-------Compression & Optimization--------
 
-// pdf/compress
+// pdf/compress-level
 pdfRouter.post(
   "/pdf/compress-level",
   OptionalAuth,
@@ -518,6 +520,47 @@ pdfRouter.post(
     }
   },
 );
+
+// pdf/compress-target-size
+pdfRouter.post(
+  "/pdf/compress-target-size",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath = "";
+    let outputFilePath = "";
+    try {
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        throw new Error("No file uploaded");
+      }
+      if (file.mimetype !== "application/pdf") {
+        throw new Error("Only pdf are allowed");
+      }
+      uploadedFilePath = file.path;
+      const targetSize = Number(req.body.targetSize);
+      ValidationFnForSize(targetSize);
+      outputFilePath = `uploads/temp/target-${Date.now()}.pdf`;
+      await compressPdfToTarget(uploadedFilePath, outputFilePath, targetSize);
+      return res.download(outputFilePath, "compressed.pdf", (err) => {
+        if (outputFilePath && fs.existsSync(outputFilePath)) {
+          fs.unlinkSync(outputFilePath);
+        }
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        Error: err?.message,
+      });
+    } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+    }
+  },
+);
+
+// pdf/compress-smartai
 
 //  pdf/optimize
 pdfRouter.post(

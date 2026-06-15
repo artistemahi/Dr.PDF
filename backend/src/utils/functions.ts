@@ -1,4 +1,5 @@
 import { ValidationFnForConvertingPageNumberToZeroBasedIndex } from "./validationFn";
+import fs from "fs";
 export const parseRanges = (ranges: string) => {
   return ranges.split(",").map((part) => {
     const [start, end] = part.split("-");
@@ -56,7 +57,7 @@ export const RemainingPages = (Pdf: any, pagesToDelete: number[]) => {
 export const getZeroBasedIndexOfPages= ((order:number[])=>{
   const zeroBasedIndexOfPages = order.map((pageNum:number)=>{return pageNum-1})
   return zeroBasedIndexOfPages;
-})
+});
 export const parseOrder = (order: string) => {
   const orderArrayOfNumbers: number[] = [];
 
@@ -92,4 +93,8 @@ export const parseOrder = (order: string) => {
   }
 
   return orderArrayOfNumbers;
+};
+export const getFileSizeMb = (path:string)=>{
+  const fileSize = fs.statSync(path).size;
+  return fileSize / 1024 / 1024;
 };

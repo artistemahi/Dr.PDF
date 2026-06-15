@@ -47,6 +47,9 @@ This document contains all API endpoints for the Dr.PDF platform.
 
 #### Compression & Optimization
 - POST /pdf/compress
+  - level
+  - targetsize
+  - smartai 
 - POST /pdf/optimize  (scaling and improving quality)
 
 ---
