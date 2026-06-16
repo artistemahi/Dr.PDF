@@ -21,6 +21,8 @@ import {
 } from "../utils/validationFn";
 import { compressPdf } from "../services/compression/Compress";
 import { compressPdfToTarget } from "../services/compression/compressPdfToTarget";
+import { analyzePdf } from "../services/compression/analyzePdf";
+import { classifyPdf } from "../services/compression/classifyPdf";
 export const pdfRouter = express.Router();
 
 //-------File Operations--------
@@ -541,7 +543,7 @@ pdfRouter.post(
       const targetSize = Number(req.body.targetSize);
       ValidationFnForSize(targetSize);
       outputFilePath = `uploads/temp/target-${Date.now()}.pdf`;
-      
+
       await compressPdfToTarget(uploadedFilePath, outputFilePath, targetSize);
       return res.download(outputFilePath, "compressed.pdf", (err) => {
         if (outputFilePath && fs.existsSync(outputFilePath)) {
@@ -562,7 +564,38 @@ pdfRouter.post(
 );
 
 // pdf/compress-smartai
-
+pdfRouter.post(
+  "/pdf/compress-smart",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath="";
+    try{
+      const file = req.file as Express.Multer.File;
+      if(!file){
+        throw new Error("No file uploaded");
+      }
+      if(file.mimetype!=="application/pdf"){
+        throw new Error("Only pdf allowed");
+      }
+      uploadedFilePath = file.path;
+      const analyzePdfResult = await analyzePdf(uploadedFilePath);
+      console.log(analyzePdfResult);
+      const classifyPdfResult = await classifyPdf(analyzePdfResult);
+      console.log(classifyPdfResult);
+      
+    }catch(err:any){
+      res.status(500).json({
+        success:false,
+        message:err?.message
+      })
+    }finally{
+      if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
+        fs.unlinkSync(uploadedFilePath);
+      }
+    }
+  },
+);
 //  pdf/optimize
 pdfRouter.post(
   "/pdf/optimize",
