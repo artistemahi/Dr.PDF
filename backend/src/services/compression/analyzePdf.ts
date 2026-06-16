@@ -1,12 +1,16 @@
 import fs from "fs";
 import { PDFParse } from "pdf-parse";
 import { PDFDocument } from "pdf-lib";
+import {getImageCount} from "./getImageCount";
+import {getFontCount} from "./getFontCount";
 export interface PdfAnalysis {
   pages: number;
   textLength: number;
   avgTextPerPages: number;
   fileSizeMb: number;
   metaDataSize: number;
+  imageCount:number,
+  fontCount:number,
   title: string | undefined;
   author: string | undefined;
   producer: string | undefined;
@@ -37,11 +41,15 @@ export const analyzePdf = async (path: string): Promise<PdfAnalysis>  => {
     const metaDataSize = JSON.stringify(metaData).length;
     const pages = pdfInfo.total;
     const textLength = pdfText.text.length;
+    const imageCount = await getImageCount(path);
+    const fontCount = await getFontCount(path);
     return {
       pages,
       textLength,
       avgTextPerPages: textLength / pages,
       fileSizeMb,
+      imageCount,
+      fontCount,
       metaDataSize,
       title: metaData.title ?? undefined,
       author:metaData.author ?? undefined,
@@ -52,4 +60,4 @@ export const analyzePdf = async (path: string): Promise<PdfAnalysis>  => {
   } finally {
     await parser.destroy();
   }
-};
+}; 

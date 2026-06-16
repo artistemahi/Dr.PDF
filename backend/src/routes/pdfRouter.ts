@@ -9,6 +9,7 @@ import {
   parseOrder,
   getZeroBasedIndexOfPages,
   parseRanges,
+  getFileSizeMb,
 } from "../utils/functions";
 import { splitPdf } from "../utils/splitPdf";
 import { sendZip } from "../utils/zipFiles";
@@ -19,10 +20,18 @@ import {
   ValidationFnForOrder,
   ValidationFnForSize,
 } from "../utils/validationFn";
-import { compressPdf } from "../services/compression/Compress";
+import {
+  compressPdf,
+  compressPdfWithDPI,
+} from "../services/compression/Compress";
 import { compressPdfToTarget } from "../services/compression/compressPdfToTarget";
 import { analyzePdf } from "../services/compression/analyzePdf";
 import { classifyPdf } from "../services/compression/classifyPdf";
+import { generateCandidates } from "../services/compression/generateCandidates";
+import { renderPdfPages } from "../utils/renderPdfPages";
+import { mse } from "../utils/compareImages";
+import { scoreCandidate } from "../services/compression/scoreCandidates";
+
 export const pdfRouter = express.Router();
 
 //-------File Operations--------
@@ -563,39 +572,153 @@ pdfRouter.post(
   },
 );
 
-// pdf/compress-smartai
+// pdf/compress-smart
 pdfRouter.post(
   "/pdf/compress-smart",
   OptionalAuth,
   upload.single("file"),
   async (req: Request, res: Response) => {
-    let uploadedFilePath="";
-    try{
+    let uploadedFilePath = "";
+    let bestFile = "";
+
+    try {
       const file = req.file as Express.Multer.File;
-      if(!file){
+
+      if (!file) {
         throw new Error("No file uploaded");
       }
-      if(file.mimetype!=="application/pdf"){
+
+      if (file.mimetype !== "application/pdf") {
         throw new Error("Only pdf allowed");
       }
+
       uploadedFilePath = file.path;
-      const analyzePdfResult = await analyzePdf(uploadedFilePath);
-      console.log(analyzePdfResult);
-      const classifyPdfResult = await classifyPdf(analyzePdfResult);
-      console.log(classifyPdfResult);
-      
-    }catch(err:any){
-      res.status(500).json({
-        success:false,
-        message:err?.message
-      })
-    }finally{
-      if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
+
+      // -------------------------
+      // ANALYZE
+      // -------------------------
+
+      const analysis = await analyzePdf(uploadedFilePath);
+
+      console.log("Analysis:", analysis);
+
+      // -------------------------
+      // CLASSIFY
+      // -------------------------
+
+      const pdfType = classifyPdf(analysis);
+
+      console.log("Pdf Type:", pdfType);
+
+      // -------------------------
+      // GENERATE CANDIDATES
+      // -------------------------
+
+      const candidates = generateCandidates(pdfType);
+
+      console.log("Candidates:", candidates);
+
+      let bestScore = -Infinity;
+      let bestFile = "";
+
+      // original pdf
+      await renderPdfPages(uploadedFilePath, "uploads/render/original");
+      // LOOP
+      for (const candidate of candidates) {
+        const candidatePath = `uploads/temp/candidate-${candidate.dpi}.pdf`;
+
+        await compressPdfWithDPI(
+          uploadedFilePath,
+          candidatePath,
+          candidate.dpi,
+        );
+        await renderPdfPages(candidatePath, `uploads/render/${candidate.dpi}`);
+        const mse1 = await mse(
+          "uploads/render/original-01.png",
+          `uploads/render/${candidate.dpi}-01.png`,
+        );
+
+        const mse2 = await mse(
+          "uploads/render/original-02.png",
+          `uploads/render/${candidate.dpi}-02.png`,
+        );
+
+        const mse3 = await mse(
+          "uploads/render/original-03.png",
+          `uploads/render/${candidate.dpi}-03.png`,
+        );
+
+        const mseScore = (mse1 + mse2 + mse3) / 3;
+
+        console.log(
+          `DPI=${candidate.dpi}
+           MSE=${mseScore}`,
+        );
+
+        const size = getFileSizeMb(candidatePath);
+
+        console.log(`DPI=${candidate.dpi} Size=${size}`);
+
+        const result = scoreCandidate(
+          analysis.fileSizeMb,
+          size,
+          mseScore,
+          candidatePath,
+        );
+
+        console.log(result);
+
+        if (result.score > bestScore) {
+          if (bestFile && fs.existsSync(bestFile)) {
+            fs.unlinkSync(bestFile);
+          }
+
+          bestScore = result.score;
+
+          bestFile = candidatePath;
+        } else {
+          if (fs.existsSync(candidatePath)) {
+            fs.unlinkSync(candidatePath);
+          }
+        }
+        ["01", "02", "03"].forEach((page) => {
+          const file = `uploads/render/${candidate.dpi}-${page}.png`;
+
+          if (fs.existsSync(file)) {
+            fs.unlinkSync(file);
+          }
+        });
+      }
+
+      if (!bestFile || !fs.existsSync(bestFile)) {
+        throw new Error("Unable to generate compressed PDF");
+      }
+
+      return res.download(bestFile, "compressed.pdf", () => {
+        if (bestFile && fs.existsSync(bestFile)) {
+          fs.unlinkSync(bestFile);
+        }
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        success: false,
+        message: err?.message,
+      });
+    } finally {
+      ["01", "02", "03"].forEach((page) => {
+        const file = `uploads/render/original-${page}.png`;
+
+        if (fs.existsSync(file)) {
+          fs.unlinkSync(file);
+        }
+      });
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
         fs.unlinkSync(uploadedFilePath);
       }
     }
   },
 );
+
 //  pdf/optimize
 pdfRouter.post(
   "/pdf/optimize",
