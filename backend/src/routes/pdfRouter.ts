@@ -19,6 +19,7 @@ import {
   ValidationFnForConvertingPageNumberToZeroBasedIndex,
   ValidationFnForOrder,
   ValidationFnForSize,
+  ValidationFnForPasswordForPdfProtect,
 } from "../utils/validationFn";
 import {
   compressPdf,
@@ -755,6 +756,7 @@ pdfRouter.post(
       }
       uploadedFilePath = file.path;
       const {password} = req.body;
+      ValidationFnForPasswordForPdfProtect(password);
       
     } catch (err: any) {
       res.status(500).json({

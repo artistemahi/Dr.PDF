@@ -1,5 +1,5 @@
 import express from "express";
-import {ValidationFn} from "../utils/validationFn";
+import {ValidationFnForUserInfo} from "../utils/validationFn";
 import { UserModel } from "../models/userSchema";
 import bcrypt from "bcrypt";
 
@@ -17,7 +17,7 @@ authRouter.post("/signup", async (req, res) => {
     const { firstName, lastName, email, password }: UserInput = req.body;
 
     // validation
-    const result = ValidationFn(firstName, lastName, email, password);
+    const result = ValidationFnForUserInfo(firstName, lastName, email, password);
     if (!result.isValid) {
       return res.status(400).json({
         success: false,
