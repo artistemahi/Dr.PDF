@@ -31,6 +31,7 @@ import { generateCandidates } from "../services/compression/generateCandidates";
 import { renderPdfPages } from "../utils/renderPdfPages";
 import { mse } from "../utils/compareImages";
 import { scoreCandidate } from "../services/compression/scoreCandidates";
+import { getRenderedFile } from "../utils/getRenderedFile";
 
 export const pdfRouter = express.Router();
 
@@ -579,7 +580,6 @@ pdfRouter.post(
   upload.single("file"),
   async (req: Request, res: Response) => {
     let uploadedFilePath = "";
-    let bestFile = "";
 
     try {
       const file = req.file as Express.Multer.File;
@@ -594,25 +594,19 @@ pdfRouter.post(
 
       uploadedFilePath = file.path;
 
-      // -------------------------
       // ANALYZE
-      // -------------------------
 
       const analysis = await analyzePdf(uploadedFilePath);
 
       console.log("Analysis:", analysis);
 
-      // -------------------------
       // CLASSIFY
-      // -------------------------
 
       const pdfType = classifyPdf(analysis);
 
       console.log("Pdf Type:", pdfType);
 
-      // -------------------------
       // GENERATE CANDIDATES
-      // -------------------------
 
       const candidates = generateCandidates(pdfType);
 
@@ -633,20 +627,23 @@ pdfRouter.post(
           candidate.dpi,
         );
         await renderPdfPages(candidatePath, `uploads/render/${candidate.dpi}`);
-        const mse1 = await mse(
-          "uploads/render/original-01.png",
-          `uploads/render/${candidate.dpi}-01.png`,
-        );
+        const original1 = getRenderedFile("original", 1);
 
-        const mse2 = await mse(
-          "uploads/render/original-02.png",
-          `uploads/render/${candidate.dpi}-02.png`,
-        );
+        const original2 = getRenderedFile("original", 2);
 
-        const mse3 = await mse(
-          "uploads/render/original-03.png",
-          `uploads/render/${candidate.dpi}-03.png`,
-        );
+        const original3 = getRenderedFile("original", 3);
+
+        const candidate1 = getRenderedFile(String(candidate.dpi), 1);
+
+        const candidate2 = getRenderedFile(String(candidate.dpi), 2);
+
+        const candidate3 = getRenderedFile(String(candidate.dpi), 3);
+
+        const mse1 = await mse(original1, candidate1);
+
+        const mse2 = await mse(original2, candidate2);
+
+        const mse3 = await mse(original3, candidate3);
 
         const mseScore = (mse1 + mse2 + mse3) / 3;
 
@@ -681,13 +678,13 @@ pdfRouter.post(
             fs.unlinkSync(candidatePath);
           }
         }
-        ["01", "02", "03"].forEach((page) => {
-          const file = `uploads/render/${candidate.dpi}-${page}.png`;
+        const renderFiles = fs.readdirSync("uploads/render");
 
-          if (fs.existsSync(file)) {
-            fs.unlinkSync(file);
-          }
-        });
+        renderFiles
+          .filter((file) => file.startsWith(`${candidate.dpi}-`))
+          .forEach((file) => {
+            fs.unlinkSync(`uploads/render/${file}`);
+          });
       }
 
       if (!bestFile || !fs.existsSync(bestFile)) {
@@ -705,15 +702,14 @@ pdfRouter.post(
         message: err?.message,
       });
     } finally {
-      ["01", "02", "03"].forEach((page) => {
-        const file = `uploads/render/original-${page}.png`;
+      if (fs.existsSync("uploads/render")) {
+        const renderFiles = fs.readdirSync("uploads/render");
 
-        if (fs.existsSync(file)) {
-          fs.unlinkSync(file);
-        }
-      });
-      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
-        fs.unlinkSync(uploadedFilePath);
+        renderFiles
+          .filter((file) => file.startsWith("original-"))
+          .forEach((file) => {
+            fs.unlinkSync(`uploads/render/${file}`);
+          });
       }
     }
   },
@@ -736,6 +732,36 @@ pdfRouter.post(
       if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
         fs.unlinkSync(uploadedFilePath);
       }
+    }
+  },
+);
+
+//------- Security API's --------
+
+// pdf/protect
+pdfRouter.post(
+  "/pdf/protect",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath="";
+    try {
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        throw new Error("No file uploaded");
+      }
+      if(file.mimetype!=="application/pdf"){
+        throw new Error("Only pdf allowed");
+      }
+      uploadedFilePath = file.path;
+      const {password} = req.body;
+      
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        error: err?.message,
+      });
+    } finally {
     }
   },
 );
