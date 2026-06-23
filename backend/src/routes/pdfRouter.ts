@@ -797,3 +797,26 @@ pdfRouter.post(
     }
   },
 );
+
+// pdf/unlock
+pdfRouter.post(
+  "/pdf/unlock",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath=""
+    try{
+      const file = req.file as Express.Multer.File
+      
+    }catch(err:any){
+      res.status(500).json({
+        success: false,
+        message:err.message
+      })
+    }finally{
+      if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
+        fs.unlinkSync(uploadedFilePath);
+      }
+    }
+  },
+);
