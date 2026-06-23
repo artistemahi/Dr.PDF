@@ -33,6 +33,7 @@ import { renderPdfPages } from "../utils/renderPdfPages";
 import { mse } from "../utils/compareImages";
 import { scoreCandidate } from "../services/compression/scoreCandidates";
 import { getRenderedFile } from "../utils/getRenderedFile";
+import { protectPdf } from "../services/security/protectPdf";
 
 export const pdfRouter = express.Router();
 
@@ -745,25 +746,54 @@ pdfRouter.post(
   OptionalAuth,
   upload.single("file"),
   async (req: Request, res: Response) => {
-    let uploadedFilePath="";
+    let uploadedFilePath = "";
+    let outputFilePath = "";
     try {
       const file = req.file as Express.Multer.File;
       if (!file) {
         throw new Error("No file uploaded");
       }
-      if(file.mimetype!=="application/pdf"){
+      if (file.mimetype !== "application/pdf") {
         throw new Error("Only pdf allowed");
       }
       uploadedFilePath = file.path;
-      const {password} = req.body;
+      outputFilePath = `uploads/temp/protected-${Date.now()}.pdf`;
+      const { password } = req.body;
       ValidationFnForPasswordForPdfProtect(password);
-      
+      outputFilePath = await protectPdf(file.path, outputFilePath, password);
+
+      const user = (req as any).user;
+      if (user && user._id) {
+        const fileName = `protected-${Date.now()}.pdf`;
+
+        const filePath = `uploads/user-files/${fileName}`;
+
+        fs.copyFileSync(outputFilePath, filePath);
+
+        await FileModel.create({
+          userId: user._id,
+          originalName: "protected.pdf",
+          fileName,
+          filePath,
+          fileType: "application/pdf",
+          size: fs.statSync(filePath).size,
+        });
+      }
+
+      return res.download(outputFilePath, "protected.pdf", () => {
+        if (outputFilePath && fs.existsSync(outputFilePath)) {
+          fs.unlinkSync(outputFilePath);
+        }
+      });
     } catch (err: any) {
       res.status(500).json({
         success: false,
         error: err?.message,
       });
     } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
     }
   },
 );
