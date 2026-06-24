@@ -92,3 +92,10 @@ export const ValidationFnForPasswordForPdfProtect = (password: string) => {
     throw new Error("Password should contains more than 2 character!");
   }
 };
+export const ValidateFnForWatermark = (watermarkText:string)=>{
+  const trimWaterMarkText = watermarkText.trim()
+    if(!watermarkText && watermarkText.length===0){
+      throw new Error("invalid watermark")
+    }
+    return trimWaterMarkText;
+}

@@ -52,22 +52,6 @@ This document contains all API endpoints for the Dr.PDF platform.
   - smartai 
 - POST /pdf/optimize  (scaling and improving quality)
 
----
-
-#### Conversion
-- POST /pdf/convert
-
----
-
-#### Editing (optional)
-- POST /pdf/edit
-- POST /pdf/add-text
-- POST /pdf/add-image
-- POST /pdf/annotate
-- POST /pdf/highlight
-
----
-
 #### Security
 - POST /pdf/protect
 - POST /pdf/unlock
@@ -75,6 +59,12 @@ This document contains all API endpoints for the Dr.PDF platform.
 - POST /pdf/remove-watermark
 
 ---
+#### Editing (optional)
+- POST /pdf/edit
+- POST /pdf/add-text
+- POST /pdf/add-image
+- POST /pdf/annotate
+- POST /pdf/highlight
 
 #### Organization
 - POST /pdf/rotate
@@ -83,7 +73,8 @@ This document contains all API endpoints for the Dr.PDF platform.
 - POST /pdf/header-footer
 
 ---
-
+#### Conversion
+- POST /pdf/convert
 ## 🔄 Conversion APIs (Optional)
 
 ### conversionRouter
