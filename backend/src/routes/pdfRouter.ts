@@ -34,6 +34,7 @@ import { mse } from "../utils/compareImages";
 import { scoreCandidate } from "../services/compression/scoreCandidates";
 import { getRenderedFile } from "../utils/getRenderedFile";
 import { protectPdf } from "../services/security/protectPdf";
+import { decryptPdf } from "../services/security/decryptPdf";
 
 export const pdfRouter = express.Router();
 
@@ -804,17 +805,56 @@ pdfRouter.post(
   OptionalAuth,
   upload.single("file"),
   async (req: Request, res: Response) => {
-    let uploadedFilePath=""
-    try{
-      const file = req.file as Express.Multer.File
-      
-    }catch(err:any){
+    console.log("unlocking...");
+    let uploadedFilePath = "";
+    let outputFilePath = "";
+    try {
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        throw new Error("No file uploaded !");
+      }
+      if (file.mimetype !== "application/pdf") {
+        throw new Error("Only pdf are allowed !");
+      }
+      uploadedFilePath = file.path;
+      outputFilePath = `uploads/temp/unlocked-${Date.now()}.pdf`;
+      const { password } = req.body;
+      if (!password || !password.trim()) {
+        throw new Error("Password is required");
+      }
+      ValidationFnForPasswordForPdfProtect(password);
+      outputFilePath = await decryptPdf(
+        uploadedFilePath,
+        outputFilePath,
+        password,
+      );
+
+      const user = (req as any).user;
+      if (user && user._id) {
+        const fileName = `unlocked-${Date.now()}.pdf`;
+        const filePath = `uploads/user-files/${fileName}`;
+        fs.copyFileSync(outputFilePath, filePath);
+        await FileModel.create({
+          userId: user._id,
+          originalName: "unlocked.pdf",
+          fileName,
+          filePath,
+          fileType: "application/pdf",
+          size: fs.statSync(filePath).size,
+        });
+      }
+      res.download(outputFilePath, (err) => {
+        if (outputFilePath && fs.existsSync(outputFilePath)) {
+          fs.unlinkSync(outputFilePath);
+        }
+      });
+    } catch (err: any) {
       res.status(500).json({
         success: false,
-        message:err.message
-      })
-    }finally{
-      if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
+        message: err.message,
+      });
+    } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
         fs.unlinkSync(uploadedFilePath);
       }
     }
