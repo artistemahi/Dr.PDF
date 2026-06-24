@@ -20,7 +20,7 @@ export const addWaterMark = async (
 
       rotate: degrees(45),
 
-      color: rgb(1, 0, 0),
+      color: rgb(0.75,0.75,0.75),
     })
     const PdfByte = await pdfDoc.save()
     fs.writeFileSync(outputFilePath,PdfByte)
