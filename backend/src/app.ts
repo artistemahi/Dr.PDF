@@ -5,17 +5,18 @@ import profileRouter from "./routes/profileRouter"
 import fileRouter from "./routes/fileRouter"
 import cookieParser from "cookie-parser";
 import {pdfRouter} from "./routes/pdfRouter"
+import conversionRouter from "./routes/conversionRouter"
 
 const app = express();
 app.use(cookieParser());
 app.use(express.json());
-
 
 // routes 
 app.use("/",authRouter);
 app.use("/user",profileRouter);
 app.use("/",fileRouter);
 app.use("/",pdfRouter);
+app.use("/",conversionRouter)
 
 connectDB()
 .then(()=>{
