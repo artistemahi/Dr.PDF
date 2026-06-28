@@ -5,7 +5,7 @@ import profileRouter from "./routes/profileRouter"
 import fileRouter from "./routes/fileRouter"
 import cookieParser from "cookie-parser";
 import {pdfRouter} from "./routes/pdfRouter"
-import conversionRouter from "./routes/conversionRouter"
+import {conversionRouter} from "./routes/conversionRouter"
 
 const app = express();
 app.use(cookieParser());
