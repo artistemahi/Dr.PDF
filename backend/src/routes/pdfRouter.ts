@@ -36,7 +36,8 @@ import { scoreCandidate } from "../services/compression/scoreCandidates";
 import { getRenderedFile } from "../utils/getRenderedFile";
 import { protectPdf } from "../services/security/protectPdf";
 import { decryptPdf } from "../services/security/decryptPdf";
-import {addWaterMark} from "../services/security/addWaterMark"
+import { addWaterMark } from "../services/security/addWaterMark";
+import {convertToHumanReadable} from "../utils/convertToHumanReadable"
 
 export const pdfRouter = express.Router();
 
@@ -864,50 +865,62 @@ pdfRouter.post(
 );
 
 // pdf/add-watermark
-pdfRouter.post("/pdf/add-watermark",OptionalAuth,upload.single("file"),async(req:Request,res:Response)=>{
-  let uploadedFilePath=""
-  let outputFilePath=""
-  try{
-      const file = req.file as Express.Multer.File
-      if(!file){
-        throw new Error("No file uploaded !")
+pdfRouter.post(
+  "/pdf/add-watermark",
+  OptionalAuth,
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    let uploadedFilePath = "";
+    let outputFilePath = "";
+    try {
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        throw new Error("No file uploaded !");
       }
-      if(file.mimetype!=="application/pdf"){
-        throw new Error("Only file pdf allowed")
+      if (file.mimetype !== "application/pdf") {
+        throw new Error("Only file pdf allowed");
       }
-      uploadedFilePath = file.path
-      outputFilePath =`uploads/temp/watermarked-${Date.now()}.pdf`
-      const {watermark} = req.body
-      ValidateFnForWatermark(watermark)
+      uploadedFilePath = file.path;
+      outputFilePath = `uploads/temp/watermarked-${Date.now()}.pdf`;
+      const { watermark } = req.body;
+      ValidateFnForWatermark(watermark);
       // add watermark
-      outputFilePath = await addWaterMark(uploadedFilePath,outputFilePath,watermark)
-      const user = (req as any).user
-      if(user && user._id){
-        const fileName = `watermarked-${Date.now()}.pdf`
-        const filePath = `uploads/user-files/${fileName}`
-        fs.copyFileSync(outputFilePath,filePath)
+      outputFilePath = await addWaterMark(
+        uploadedFilePath,
+        outputFilePath,
+        watermark,
+      );
+      const user = (req as any).user;
+      if (user && user._id) {
+        const fileName = `watermarked-${Date.now()}.pdf`;
+        const filePath = `uploads/user-files/${fileName}`;
+        fs.copyFileSync(outputFilePath, filePath);
         await FileModel.create({
-          userId:user._id,
-          originalName:"water-marked.pdf",
+          userId: user._id,
+          originalName: "water-marked.pdf",
           fileName,
           filePath,
-          fileType:"application/pdf",
-          size:fs.statSync(filePath).size
-        })
+          fileType: "application/pdf",
+          size: fs.statSync(filePath).size,
+        });
       }
-      res.download(outputFilePath,(err)=>{
-        if(outputFilePath && fs.existsSync(outputFilePath)){
-          fs.unlinkSync(outputFilePath)
+      res.download(outputFilePath, (err) => {
+        if (outputFilePath && fs.existsSync(outputFilePath)) {
+          fs.unlinkSync(outputFilePath);
         }
-      })
-  }catch(err:any){
-    res.status(500).json({
-      success:false,
-      message:err.message
-    })
-  }finally{
-      if(uploadedFilePath && fs.existsSync(uploadedFilePath)){
-        fs.unlinkSync(uploadedFilePath)
+      });
+    } catch (err: any) {
+      res.status(500).json({
+        success: false,
+        message: err.message,
+      });
+    } finally {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
       }
-  }
-})
+    }
+  },
+);
+// pdf/remove-watermark
+
+//------- Security API's --------

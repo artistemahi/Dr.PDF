@@ -50,13 +50,13 @@ This document contains all API endpoints for the Dr.PDF platform.
   - level
   - targetsize
   - smartai 
-- POST /pdf/optimize  (scaling and improving quality)
+- POST /pdf/optimize  (scaling and improving quality) LATER
 
 #### Security
 - POST /pdf/protect
 - POST /pdf/unlock
 - POST /pdf/add-watermark
-- POST /pdf/remove-watermark
+- POST /pdf/remove-watermark  LATER
 
 ---
 #### Editing (optional)
