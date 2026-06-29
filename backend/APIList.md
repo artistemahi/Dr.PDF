@@ -78,8 +78,10 @@ This document contains all API endpoints for the Dr.PDF platform.
 ## 🔄 Conversion APIs (Optional)
 
 ### conversionRouter
-- POST /convert/pdf-to-word
-- POST /convert/pdf-to-excel
+- POST /convert/pdf-to-word // with python script 
+- POST /convert/word-to-pdf // with libreoffice(not best result but okay so we will use microsoft Graph api) 
+- POST /convert/pdf-to-excel // camelot  
+- POST /convert/excel-to-pdf // Microsoft Graph API (free)
 - POST /convert/pdf-to-ppt
 - POST /convert/pdf-to-image
 

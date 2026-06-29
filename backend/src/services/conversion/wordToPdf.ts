@@ -11,6 +11,7 @@ export const wordToPdf = async (inputFilePath: string, outputDir: string) => {
   const outputFilePath = path.join(outputDir, `${fileName}.pdf`);
   if (!fs.existsSync(outputFilePath)) {
     throw new Error("PDF conversion failed");
-  }
-  return outputFilePath;
+    }
+
+    return outputFilePath;
 };
